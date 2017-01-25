@@ -5,7 +5,8 @@ import vcr
 from click.testing import CliRunner
 from sentinelsat.scripts.cli import cli
 
-_api_auth = [environ.get('SENTINEL_USER', "user"), environ.get('SENTINEL_PASSWORD', "pw")]
+user = environ.get('SENTINEL_USER', "user")
+passwd = environ.get('SENTINEL_PASSWORD', "pw")
 
 my_vcr = vcr.VCR(
     serializer='yaml',
@@ -25,8 +26,9 @@ def test_cli():
     result = runner.invoke(
         cli,
         ['search'] +
-        _api_auth +
-        ['tests/map.geojson'],
+        ['tests/map.geojson',
+         '--user', user,
+         '--password', passwd],
         catch_exceptions=False
     )
 
@@ -35,9 +37,10 @@ def test_cli():
     result = runner.invoke(
         cli,
         ['search'] +
-        _api_auth +
         ['tests/map.geojson',
-         '--url', 'https://scihub.copernicus.eu/dhus/'],
+         '--url', 'https://scihub.copernicus.eu/dhus/',
+         '--user', user,
+         '--password', passwd],
         catch_exceptions=False
     )
     assert result.exit_code == 0
@@ -45,8 +48,9 @@ def test_cli():
     result = runner.invoke(
         cli,
         ['search'] +
-        _api_auth +
         ['tests/map.geojson',
+         '--user', user,
+         '--password', passwd,
          '-q', 'producttype=GRD,polarisationmode=HH'],
         catch_exceptions=False
     )
@@ -61,8 +65,9 @@ def test_returned_filesize():
     result = runner.invoke(
         cli,
         ['search'] +
-        _api_auth +
         ['tests/map.geojson',
+         '--user', user,
+         '--password', passwd,
          '--url', 'https://scihub.copernicus.eu/dhus/',
          '-s', '20141205',
          '-e', '20141208',
@@ -75,8 +80,9 @@ def test_returned_filesize():
     result = runner.invoke(
         cli,
         ['search'] +
-        _api_auth +
         ['tests/map.geojson',
+         '--user', user,
+         '--password', passwd,
          '--url', 'https://scihub.copernicus.eu/dhus/',
          '-s', '20140101',
          '-e', '20141231',
@@ -95,8 +101,9 @@ def test_cloud_flag_url():
     result = runner.invoke(
         cli,
         ['search'] +
-        _api_auth +
         ['tests/map.geojson',
+         '--user', user,
+         '--password', passwd,
          '--url', 'https://scihub.copernicus.eu/apihub/',
          '-s', '20151219',
          '-e', '20151228',
@@ -115,8 +122,9 @@ def test_sentinel1_flag():
     result = runner.invoke(
         cli,
         ['search'] +
-        _api_auth +
         ['tests/map.geojson',
+         '--user', user,
+         '--password', passwd,
          '--url', 'https://scihub.copernicus.eu/apihub/',
          '-s', '20151219',
          '-e', '20151228',
@@ -135,8 +143,9 @@ def test_sentinel2_flag():
     result = runner.invoke(
         cli,
         ['search'] +
-        _api_auth +
         ['tests/map.geojson',
+         '--user',  user,
+         '--password',  passwd,
          '--url', 'https://scihub.copernicus.eu/apihub/',
          '-s', '20151219',
          '-e', '20151228',
@@ -146,3 +155,16 @@ def test_sentinel2_flag():
 
     expected = "Product 91c2503c-3c58-4a8c-a70b-207b128e6833 - Date: 2015-12-27T14:22:29Z, Instrument: MSI, Mode: , Satellite: Sentinel-2, Size: 5.73 GB"
     assert result.output.split("\n")[2] == expected
+
+@my_vcr.use_cassette
+@pytest.mark.scihub
+def test_netrc():
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ['search'] +
+        ['tests/map.geojson'],
+        catch_exceptions=False
+    )
+
+    assert result.exit_code == 0

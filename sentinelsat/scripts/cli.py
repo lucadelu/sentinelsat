@@ -2,9 +2,21 @@ import click
 import geojson as gj
 
 import os
+import netrc
 
 from sentinelsat.sentinel import SentinelAPI, get_coordinates
 
+def _read_netrc(url):
+    nt = netrc.netrc()
+    try:
+        account = nt.hosts[url]
+    except:
+        raise IOError("Please set 'user' and 'password' parameters"
+                      ", netrc file does not contain parameter "
+                      "for SciHub API URL")
+    user = account[0]
+    password = account[2]
+    return user, password
 
 @click.group()
 def cli():
@@ -12,9 +24,11 @@ def cli():
 
 
 @cli.command()
-@click.argument('user', type=str, metavar='<user>')
-@click.argument('password', type=str, metavar='<password>')
 @click.argument('geojson', type=click.Path(exists=True), metavar='<geojson>')
+@click.option('--user', type=str, metavar='<user>', default=None,
+    help="""SciHub user. If option is not set, it try to read from $HOME/.netrc file""")
+@click.option('--password', type=str, metavar='<password>', default=None,
+    help="""SciHub password. If option is not set, it try to read from $HOME/.netrc file""")
 @click.option(
     '--start', '-s', type=str, default='NOW-1DAY',
     help='Start date of the query in the format YYYYMMDD.')
@@ -65,6 +79,8 @@ def search(
     containing the polygon of the area you want to search for. If you
     don't specify the start and end dates, it will search in the last 24 hours.
     """
+    if not user or not password:
+        user,  password = _read_netrc(url)
     api = SentinelAPI(user, password, url)
 
     search_kwargs = {}
@@ -105,9 +121,11 @@ def search(
 
 
 @cli.command()
-@click.argument('user', type=str, metavar='<user>')
-@click.argument('password', type=str, metavar='<password>')
 @click.argument('productid', type=str, metavar='<productid>')
+@click.option('--user', type=str, metavar='<user>', default=None,
+    help="""SciHub user. If option is not set, it try to read from $HOME/.netrc file""")
+@click.option('--password', type=str, metavar='<password>', default=None,
+    help="""SciHub password. If option is not set, it try to read from $HOME/.netrc file""")
 @click.option(
     '--path', '-p', type=click.Path(exists=True), default='.',
     help='Set the path where the files will be saved.')
@@ -125,5 +143,7 @@ def download(user, password, productid, path, md5, url):
     """Download a Sentinel Product. It just needs your SciHub user and password
     and the id of the product you want to download.
     """
+    if not user or not password:
+        user,  password = _read_netrc(url)
     api = SentinelAPI(user, password, url)
     api.download(productid, path, md5)
