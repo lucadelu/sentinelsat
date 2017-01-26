@@ -2,21 +2,8 @@ import click
 import geojson as gj
 
 import os
-import netrc
 
-from sentinelsat.sentinel import SentinelAPI, get_coordinates
-
-def _read_netrc(url):
-    nt = netrc.netrc()
-    try:
-        account = nt.hosts[url]
-    except:
-        raise IOError("Please set 'user' and 'password' parameters"
-                      ", netrc file does not contain parameter "
-                      "for SciHub API URL")
-    user = account[0]
-    password = account[2]
-    return user, password
+from sentinelsat.sentinel import SentinelAPI, get_coordinates, _read_netrc
 
 @click.group()
 def cli():

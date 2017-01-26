@@ -10,6 +10,7 @@ from os import remove
 from os.path import join, exists, getsize
 import pycurl
 from time import sleep
+import netrc
 
 import geojson
 import homura
@@ -97,6 +98,17 @@ def _check_scihub_response(response):
         api_error.__cause__ = None
         raise api_error
 
+def _read_netrc(url):
+    nt = netrc.netrc()
+    try:
+        account = nt.hosts[url]
+    except:
+        raise IOError("Please set 'user' and 'password' parameters"
+                      ", netrc file does not contain parameter "
+                      "for SciHub API URL")
+    user = account[0]
+    password = account[2]
+    return user, password
 
 class SentinelAPI(object):
     """Class to connect to Sentinel Data Hub, search and download imagery.
@@ -122,9 +134,12 @@ class SentinelAPI(object):
         current value: 100 (maximum allowed on ApiHub)
     """
 
-    def __init__(self, user, password, api_url='https://scihub.copernicus.eu/apihub/'):
+    def __init__(self, user=None, password=None, api_url='https://scihub.copernicus.eu/apihub/'):
         self.session = requests.Session()
-        self.session.auth = (user, password)
+        if user and password:
+            self.session.auth = (user, password)
+        else:
+            self.session.auth = _read_netrc(api_url)
         self.api_url = api_url if api_url.endswith('/') else api_url + '/'
         self.url = None
         self.last_query = None
