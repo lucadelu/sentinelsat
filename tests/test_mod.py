@@ -1,7 +1,7 @@
 import hashlib
 import textwrap
 from datetime import date, datetime, timedelta
-from os import environ
+import os
 
 import geojson
 import py.path
@@ -12,8 +12,8 @@ from sentinelsat.sentinel import (InvalidChecksumError, SentinelAPI, SentinelAPI
                                   get_coordinates, md5_compare)
 
 _api_auth = dict(
-    user=environ.get('SENTINEL_USER'),
-    password=environ.get('SENTINEL_PASSWORD'))
+    user=os.environ.get('SENTINEL_USER'),
+    password=os.environ.get('SENTINEL_PASSWORD'))
 
 _api_kwargs = dict(_api_auth,
                    api_url='https://scihub.copernicus.eu/apihub/')
@@ -448,3 +448,29 @@ def test_download_all(tmpdir):
         result = api.download_all(products, str(tmpdir), max_attempts=1, checksum=True)
         assert len(result) == len(filenames)
         assert result[path] is None
+
+@pytest.mark.homura
+@pytest.mark.scihub
+def test_download_netrc(tmpdir):
+    if not os.path.exists(os.path.join(os.path.expanduser('~'),'.netrc')):
+        return
+    api = SentinelAPI()
+    uuid = "1f62a176-c980-41dc-b3a1-c735d660c910"
+    filename = "S1A_WV_OCN__2SSH_20150603T092625_20150603T093332_006207_008194_521E"
+    expected_path = tmpdir.join(filename + ".zip")
+
+    # Download normally
+    path, product_info = api.download(uuid, str(tmpdir), checksum=True)
+    assert expected_path.samefile(path)
+    assert product_info["id"] == uuid
+    assert product_info["title"] == filename
+    assert product_info["size"] == expected_path.size()
+
+    modification_time = expected_path.mtime()
+    expected_product_info = product_info
+
+    # File exists, test with checksum
+    # Expect no modification
+    path, product_info = api.download(uuid, str(tmpdir), check_existing=True)
+    assert expected_path.mtime() == modification_time
+    assert product_info == expected_product_info

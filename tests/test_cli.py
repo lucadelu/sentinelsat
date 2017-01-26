@@ -1,12 +1,12 @@
-from os import environ
+import os
 
 import pytest
 import vcr
 from click.testing import CliRunner
 from sentinelsat.scripts.cli import cli
 
-user = environ.get('SENTINEL_USER', "user")
-passwd = environ.get('SENTINEL_PASSWORD', "pw")
+user = os.environ.get('SENTINEL_USER', "user")
+passwd = os.environ.get('SENTINEL_PASSWORD', "pw")
 
 my_vcr = vcr.VCR(
     serializer='yaml',
@@ -159,6 +159,8 @@ def test_sentinel2_flag():
 @my_vcr.use_cassette
 @pytest.mark.scihub
 def test_netrc():
+    if not os.path.exists(os.path.join(os.path.expanduser('~'),'.netrc')):
+        return
     runner = CliRunner()
     result = runner.invoke(
         cli,
