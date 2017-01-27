@@ -1,22 +1,13 @@
 import os
 
 import pytest
-import vcr
 from click.testing import CliRunner
+
 from sentinelsat.scripts.cli import cli
+from .shared import my_vcr
 
 user = os.environ.get('SENTINEL_USER', "user")
 passwd = os.environ.get('SENTINEL_PASSWORD', "pw")
-
-my_vcr = vcr.VCR(
-    serializer='yaml',
-    cassette_library_dir='tests/vcr_cassettes/',
-    # change to 'all' to re-record the interactions
-    record_mode='once',
-    match_on=['url', 'method', 'query'],
-    path_transformer=vcr.VCR.ensure_suffix('.yaml'),
-    filter_headers=['Set-Cookie']
-)
 
 
 @my_vcr.use_cassette
