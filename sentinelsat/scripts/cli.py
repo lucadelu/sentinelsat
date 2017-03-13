@@ -1,13 +1,26 @@
 import click
 import geojson as gj
+import logging
 
 import os
 
 from sentinelsat.sentinel import SentinelAPI, get_coordinates, _read_netrc
+from sentinelsat import __version__ as sentinelsat_version
+
+logger = logging.getLogger('sentinelsat')
+
+
+def _set_logger_handler(level='INFO'):
+    logger.setLevel(level)
+    h = logging.StreamHandler()
+    h.setLevel(level)
+    fmt = logging.Formatter('%(message)s')
+    h.setFormatter(fmt)
+    logger.addHandler(h)
 
 @click.group()
 def cli():
-    pass
+    _set_logger_handler()
 
 
 @cli.command()
@@ -27,8 +40,8 @@ def cli():
     help='Download all results of the query.')
 @click.option(
     '--footprints', '-f', is_flag=True,
-    help="""Create a geojson file search_footprints.geojson with footprints of
-    the query result.
+    help="""Create a geojson file search_footprints.geojson with footprints
+    and metadata of the returned products.
     """)
 @click.option(
     '--path', '-p', type=click.Path(exists=True), default='.',
@@ -57,6 +70,8 @@ def cli():
 @click.option(
     '-c', '--cloud', type=int,
     help='Maximum cloud cover in percent. (Automatically sets --sentinel2)')
+@click.version_option(version=sentinelsat_version, prog_name="sentinelsat")
+
 def search(
         user, password, geojson, start, end, download, md5,
         sentinel1, sentinel2, cloud, footprints, path, query, url):
@@ -68,6 +83,7 @@ def search(
     """
     if not user or not password:
         user,  password = _read_netrc(url)
+
     api = SentinelAPI(user, password, url)
 
     search_kwargs = {}
@@ -86,7 +102,7 @@ def search(
     products = api.query(get_coordinates(geojson), start, end, **search_kwargs)
 
     if footprints is True:
-        footprints_geojson = api.get_footprints(products)
+        footprints_geojson = api.to_geojson(products)
         with open(os.path.join(path, "search_footprints.geojson"), "w") as outfile:
             outfile.write(gj.dumps(footprints_geojson))
 
@@ -100,9 +116,9 @@ def search(
                         outfile.write("%s : %s\n" % corrupt_tuple)
     else:
         for product in products:
-            print('Product %s - %s' % (product['id'], product['summary']))
-        print('---')
-        print(
+            logger.info('Product %s - %s' % (product['id'], product['summary']))
+        logger.info('---')
+        logger.info(
             '%s scenes found with a total size of %.2f GB' %
             (len(products), api.get_products_size(products)))
 
@@ -126,6 +142,8 @@ def search(
     help="""Verify the MD5 checksum and write corrupt product ids and filenames
     to corrupt_scenes.txt.')
     """)
+@click.version_option(version=sentinelsat_version, prog_name="sentinelsat")
+
 def download(user, password, productid, path, md5, url):
     """Download a Sentinel Product. It just needs your SciHub user and password
     and the id of the product you want to download.

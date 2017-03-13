@@ -147,9 +147,29 @@ def test_sentinel2_flag():
     expected = "Product 91c2503c-3c58-4a8c-a70b-207b128e6833 - Date: 2015-12-27T14:22:29Z, Instrument: MSI, Mode: , Satellite: Sentinel-2, Size: 5.73 GB"
     assert result.output.split("\n")[2] == expected
 
+
 @my_vcr.use_cassette
 @pytest.mark.scihub
-def test_netrc():
+def test_footprints_cli(tmpdir):
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ['search'] +
+        ['tests/map.geojson',
+         '--user',  user,
+         '--password',  passwd,
+         '-s', '20151219',
+         '-e', '20151228',
+         '--sentinel 2',
+         '--path', str(tmpdir),
+         '--footprints'],
+        catch_exceptions=False
+    )
+
+
+@my_vcr.use_cassette
+@pytest.mark.scihub
+def test_netrc(tmpdir):
     if not os.path.exists(os.path.join(os.path.expanduser('~'),'.netrc')):
         return
     runner = CliRunner()
@@ -157,7 +177,7 @@ def test_netrc():
         cli,
         ['search'] +
         ['tests/map.geojson'],
-        catch_exceptions=False
+        catch_exceptions=True
     )
 
     assert result.exit_code == 0
